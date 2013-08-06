@@ -32,10 +32,22 @@ World.prototype.init = function() {
 
 	this.projector = new THREE.Projector();
 
-	this.ground = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000, 500, 500), new THREE.MeshLambertMaterial({color: 0x00FF00, wireframe: true}));
+	var texture = THREE.ImageUtils.loadTexture( 'pattern.png' );
+	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+	texture.repeat.set( 100, 100);
+
+	this.ground = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000, 500, 500), new THREE.MeshLambertMaterial({
+		map: texture
+	}));
 	this.ground.rotation.set(-90*Math.PI/180, 0, 0);
+	this.ground.receiveShadow = true;
 	// this.ground.position.set(0, -10, 0);
 	this.scene.add(this.ground);
+
+	// this.ground_wire = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000, 500, 500), new THREE.MeshLambertMaterial({color: 0x000000, wireframe: true}));
+	// this.ground_wire.rotation.set(-90*Math.PI/180, 0, 0);
+	// // this.ground.position.set(0, -10, 0);
+	// this.scene.add(this.ground_wire);
 
 	window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
@@ -51,7 +63,7 @@ World.prototype.init_renderer = function() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.shadowMapEnabled = true;
 	renderer.shadowMapSoft = true;
-	renderer.setClearColor( 0xEEEEEE, 1 );
+	renderer.setClearColor( 0x98D3F5, 1 );
 	renderer.domElement.id = "world";
 	renderer.domElement.style.position = "absolute";
 	renderer.domElement.style.zIndex   = 0;
@@ -73,7 +85,6 @@ World.prototype.onMouseDown = function(event) {
 };
 
 World.prototype.onMouseUp = function(event) {
-	this.is_selected = false;
 	event.preventDefault();
 
 	var current_location = new THREE.Vector2( event.clientX, event.clientY);
@@ -85,6 +96,8 @@ World.prototype.onMouseUp = function(event) {
 	if (dist > 1) {
 		return;
 	}
+
+	this.is_selected = false;
 
 	var vector = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
 	this.projector.unprojectVector( vector, this.camera );
@@ -135,7 +148,7 @@ World.prototype.init_stats = function() {
 
 World.prototype.init_scene = function() {
 	var scene = new THREE.Scene({ fixedTimeStep: 1 / 120 });
-	scene.fog = new THREE.FogExp2( 0xcccccc, 0.0002 );
+	scene.fog = new THREE.Fog( 0xffffff, 1, 5000 );
 	return scene;
 };
 
@@ -164,28 +177,41 @@ World.prototype.init_lights = function() {
 	var lights = [];
 	// Light
 	var d_light = new THREE.DirectionalLight( 0xFFFFFF );
-	d_light.position.set( 300, 200, 300 );
-	d_light.intensity = 1;
+	d_light.position.set( 100, 2000, -1000 );
+	d_light.intensity = .7;
 	d_light.target.position.set(0, 0, 0);
 	d_light.castShadow = true;
 	d_light.shadowBias = -.0001
 	d_light.shadowMapWidth = d_light.shadowMapHeight = 2048;
-	d_light.shadowDarkness = .7;
+	d_light.shadowDarkness = .5;
+	d_light.shadowCameraNear = 1;
+	d_light.shadowCameraFar = 5000;
+	// d_light.shadowCameraVisible = true;
 	
 	lights.push(d_light);
 	this.scene.add(d_light);
 
-	var s_light = new THREE.SpotLight( 0xFFFFFF);
-	s_light.position.set( 0, 400, 200 );
-	s_light.target.position.copy( this.scene.position );
-	s_light.castShadow = true;
-	s_light.intensity = .8;
-	s_light.shadowDarkness = .7;
+	var d_light_2 = d_light.clone();
+	console.log(d_light_2);
+	d_light_2.position.set( 500, 2000, 500 );
+	d_light_2.intensity = .2;
+	d_light.shadowDarkness = .1;
+	// d_light_2.shadowCameraVisible = true;
+	
+	lights.push(d_light_2);
+	this.scene.add(d_light_2);
 
-	lights.push(s_light);
-	this.scene.add(s_light);
+	// var s_light = new THREE.SpotLight( 0xFFFFFF);
+	// s_light.position.set( 0, 400, 200 );
+	// s_light.target.position.copy( this.scene.position );
+	// s_light.castShadow = true;
+	// s_light.intensity = .8;
+	// s_light.shadowDarkness = .7;
 
-	var ambient = new THREE.AmbientLight( 0x222222 );
+	// lights.push(s_light);
+	// this.scene.add(s_light);
+
+	var ambient = new THREE.AmbientLight( 0x111111 );
 	lights.push(ambient);
 	this.scene.add( ambient );
 
@@ -209,6 +235,8 @@ World.prototype.build_stadium =  function () {
 		    bevelEnabled: false
 		  });
 		var object = new THREE.Mesh(geometry, building_material);
+		object.castShadow = true;
+		object.receiveShadow = true;	
 		this.objects.push( object );
 		this.group.add(object);
 	}
@@ -236,8 +264,15 @@ World.prototype.convert_shape = function (geometry) {
     },
 
 World.prototype.handle_tooltip = function() {
+	var tooltip = document.getElementById("tooltip");
+	var screen_location = this.to_screen(this.selected_location);
 	if (this.is_selected) {
-		console.log(this.to_screen(this.selected_location));
+		tooltip.style.visibility = 'visible';
+		tooltip.style.left = (this.to_screen(this.selected_location).x - 130) + "px";
+		tooltip.style.top = (this.to_screen(this.selected_location).y - 30) + "px";
+	}
+	else {
+		tooltip.style.visibility = 'hidden';
 	}
 };
 

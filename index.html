@@ -3,7 +3,44 @@
 <head>
   <title>SeatGeek 3D</title>
   <style>
-    * { margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; font: 13px/20px 'Helvetica Neue', Helvetica, Arial, sans-serif;}
+    #tooltip {
+      color: #222222;
+      position: absolute;
+      width: 250px;
+      height: 20px;
+      z-index: 1;
+      background-color: white;
+      visibility: hidden;
+      text-align: center;
+
+      padding-left: 5px;
+      padding-right: 5px;
+      border: 3px solid;
+      border-color: #a8acbc #babdcc #c0c3d2;
+      border-radius: 6px;
+    }
+
+    #tooltip:after {
+      content: "";
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-width: 10px;
+      border-style: solid;
+      border-color: #c0c3d2 transparent transparent transparent;
+      top: 20px;
+      left: 120px;
+}
+  #section {
+    font-weight: bold;
+  }
+  #listings {
+    color: #555555;
+  }
+  #price {
+    font-weight: bold;
+  }
   </style>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Language" content="en" />
@@ -21,6 +58,9 @@
 </head>
 
 <body style="overflow:hidden;">
+  <div id="tooltip">
+    <span id="section">Section: Outfield 3</span>, <span id="listings">10 listings from</span> <span id="price"> $82</span>
+  </div>
 </body>
 
 </html>
