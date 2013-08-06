@@ -36,9 +36,13 @@ World.prototype.init = function() {
 	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 	texture.repeat.set( 100, 100);
 
-	this.ground = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000, 500, 500), new THREE.MeshLambertMaterial({
-		map: texture
+	this.ground = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000, 500, 500), new THREE.MeshPhongMaterial({
+		map: texture,
+		ambient: 0xffffff, 
+		// color: 0xffffff, 
+		specular: 0x050505 
 	}));
+
 	this.ground.rotation.set(-90*Math.PI/180, 0, 0);
 	this.ground.receiveShadow = true;
 	// this.ground.position.set(0, -10, 0);
@@ -48,6 +52,8 @@ World.prototype.init = function() {
 	// this.ground_wire.rotation.set(-90*Math.PI/180, 0, 0);
 	// // this.ground.position.set(0, -10, 0);
 	// this.scene.add(this.ground_wire);
+
+
 
 	window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
 
@@ -148,7 +154,8 @@ World.prototype.init_stats = function() {
 
 World.prototype.init_scene = function() {
 	var scene = new THREE.Scene({ fixedTimeStep: 1 / 120 });
-	scene.fog = new THREE.Fog( 0xffffff, 1, 5000 );
+	scene.fog = new THREE.Fog( 0xffffff, 1, 7000 );
+	scene.fog.color.setHSL( 0.6, 0, 1 );
 	return scene;
 };
 
@@ -175,31 +182,31 @@ World.prototype.init_camera = function() {
 
 World.prototype.init_lights = function() {
 	var lights = [];
-	// Light
-	var d_light = new THREE.DirectionalLight( 0xFFFFFF );
-	d_light.position.set( 100, 2000, -1000 );
-	d_light.intensity = .7;
-	d_light.target.position.set(0, 0, 0);
-	d_light.castShadow = true;
-	d_light.shadowBias = -.0001
-	d_light.shadowMapWidth = d_light.shadowMapHeight = 2048;
-	d_light.shadowDarkness = .5;
-	d_light.shadowCameraNear = 1;
-	d_light.shadowCameraFar = 5000;
-	// d_light.shadowCameraVisible = true;
+	// // Light
+	// var d_light = new THREE.DirectionalLight( 0xFFFFFF );
+	// d_light.position.set( 100, 2000, -1000 );
+	// d_light.intensity = .7;
+	// d_light.target.position.set(0, 0, 0);
+	// d_light.castShadow = true;
+	// d_light.shadowBias = -.0001
+	// d_light.shadowMapWidth = d_light.shadowMapHeight = 2048;
+	// d_light.shadowDarkness = .5;
+	// d_light.shadowCameraNear = 1;
+	// d_light.shadowCameraFar = 5000;
+	// // d_light.shadowCameraVisible = true;
 	
-	lights.push(d_light);
-	this.scene.add(d_light);
+	// lights.push(d_light);
+	// this.scene.add(d_light);
 
-	var d_light_2 = d_light.clone();
-	console.log(d_light_2);
-	d_light_2.position.set( 500, 2000, 500 );
-	d_light_2.intensity = .2;
-	d_light.shadowDarkness = .1;
-	// d_light_2.shadowCameraVisible = true;
+	// var d_light_2 = d_light.clone();
+	// console.log(d_light_2);
+	// d_light_2.position.set( 500, 2000, 500 );
+	// d_light_2.intensity = .2;
+	// d_light.shadowDarkness = .1;
+	// // d_light_2.shadowCameraVisible = true;
 	
-	lights.push(d_light_2);
-	this.scene.add(d_light_2);
+	// lights.push(d_light_2);
+	// this.scene.add(d_light_2);
 
 	// var s_light = new THREE.SpotLight( 0xFFFFFF);
 	// s_light.position.set( 0, 400, 200 );
@@ -211,9 +218,46 @@ World.prototype.init_lights = function() {
 	// lights.push(s_light);
 	// this.scene.add(s_light);
 
-	var ambient = new THREE.AmbientLight( 0x111111 );
-	lights.push(ambient);
-	this.scene.add( ambient );
+	// var ambient = new THREE.AmbientLight( 0x111111 );
+	// lights.push(ambient);
+	// this.scene.add( ambient );
+
+	var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.25 );
+	hemiLight.color.setHex( 0x91BBFF );
+	hemiLight.groundColor.setHex( 0xD4FFD5 );
+	hemiLight.position.set( 0, 1000, 0 );
+	
+	this.scene.add( hemiLight );
+
+	var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+	dirLight.color.setHex( 0xFFFBF3 );
+	dirLight.position.set( -1, 1.75, 1 );
+	dirLight.position.multiplyScalar( 1000 );
+	
+
+	dirLight.castShadow = true;
+
+	dirLight.shadowMapWidth = 2048;
+	dirLight.shadowMapHeight = 2048;
+	this.scene.add( dirLight );
+
+	var vertexShader = document.getElementById( 'vertexShader' ).textContent;
+	var fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
+	var uniforms = {
+		topColor: 	 { type: "c", value: new THREE.Color( 0x0077ff ) },
+		bottomColor: { type: "c", value: new THREE.Color( 0xffffff ) },
+		offset:		 { type: "f", value: 33 },
+		exponent:	 { type: "f", value: 0.6 }
+	}
+	uniforms.topColor.value.copy( hemiLight.color );
+
+	this.scene.fog.color.copy( uniforms.bottomColor.value );
+
+	var skyGeo = new THREE.SphereGeometry( 4000, 32, 15 );
+	var skyMat = new THREE.ShaderMaterial( { vertexShader: vertexShader, fragmentShader: fragmentShader, uniforms: uniforms, side: THREE.BackSide } );
+
+	var sky = new THREE.Mesh( skyGeo, skyMat );
+	this.scene.add( sky );
 
 	return lights;
 };
